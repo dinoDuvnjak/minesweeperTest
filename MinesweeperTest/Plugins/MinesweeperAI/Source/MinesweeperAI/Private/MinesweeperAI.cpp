@@ -3,7 +3,7 @@
 #include "MinesweeperAI.h"
 #include "MinesweeperAIStyle.h"
 #include "MinesweeperAICommands.h"
-#include "LevelEditor.h"
+#include "MinesweeperWindow.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
@@ -52,7 +52,7 @@ void FMinesweeperAIModule::ShutdownModule()
 
 TSharedRef<SDockTab> FMinesweeperAIModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
-    FText WidgetText = FText::Format(
+    /*FText WidgetText = FText::Format(
         LOCTEXT("WindowWidgetText", "Add code to {0} in {1} to override this window's contents"),
         FText::FromString(TEXT("FMinesweeperAIModule::OnSpawnPluginTab")),
         FText::FromString(TEXT("MinesweeperAI.cpp"))
@@ -68,7 +68,13 @@ TSharedRef<SDockTab> FMinesweeperAIModule::OnSpawnPluginTab(const FSpawnTabArgs&
                 SNew(STextBlock)
                 .Text(WidgetText)
             ]
-        ];
+        ];*/
+
+    return SNew(SDockTab)
+       .TabRole(ETabRole::NomadTab)
+       [
+           SNew(SMinesweeperWindow) // 🔹 Replace placeholder UI with your custom window
+       ];
 }
 
 void FMinesweeperAIModule::PluginButtonClicked()
