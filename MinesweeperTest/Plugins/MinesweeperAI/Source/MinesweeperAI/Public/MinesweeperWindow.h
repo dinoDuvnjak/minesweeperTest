@@ -67,4 +67,15 @@ private:
 		}
 		return FReply::Handled();
 	}
+
+	// 🔹 Submits the message
+	FReply OnSubmitClicked()
+	{
+		if (InputTextBox.IsValid())
+		{
+			FString UserInput = InputTextBox->GetText().ToString();
+			UE_LOG(LogTemp, Log, TEXT("User submitted: %s"), *UserInput);
+		}
+		return FReply::Handled();
+	}
 };
