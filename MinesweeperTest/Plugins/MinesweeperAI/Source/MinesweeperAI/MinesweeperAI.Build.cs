@@ -25,7 +25,11 @@ public class MinesweeperAI : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core",
+				"Core", 
+				"Engine", 
+				"HTTP",
+				"Json",
+				"JsonUtilities"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);

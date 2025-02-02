@@ -163,7 +163,7 @@ void SMinesweeperWindow::Construct(const FArguments& InArgs)
                     .VAlign(VAlign_Center)
                     .Padding(0)
                     [
-                        SNew(SEditableTextBox)
+                        SAssignNew(InputTextBox, SEditableTextBox)
                         .Text(FText::FromString("Generate a new 3x3 Minesweeper grid with 2 mines"))
                         .Padding(20)
                         .OnTextCommitted(this, &SMinesweeperWindow::OnTextCommitted)

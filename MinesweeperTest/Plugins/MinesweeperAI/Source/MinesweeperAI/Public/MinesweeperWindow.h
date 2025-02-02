@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AIAsyncRequest.h"
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
 
@@ -22,7 +23,7 @@ public:
 	void Construct(const FArguments& InArgs);
 
 private:
-	TSharedPtr<SMultiLineEditableTextBox> InputTextBox;
+	TSharedPtr<SEditableTextBox> InputTextBox;
 	// 🔹 Creates a Minesweeper Tile Button
 	TSharedRef<SWidget> CreateTileButton()
 	{
@@ -75,6 +76,19 @@ private:
 		{
 			FString UserInput = InputTextBox->GetText().ToString();
 			UE_LOG(LogTemp, Log, TEXT("User submitted: %s"), *UserInput);
+
+			//TODO
+			FOpenAiRequestData RequestData;
+			RequestData.Prombt = UserInput;
+			UOpenAIRequest* OpenAIRequest = UOpenAIRequest::OpenAIRequest(RequestData);
+			if (OpenAIRequest)
+			{
+				OpenAIRequest->OnCallback.AddLambda([this](FOpenAiResponseData ResponseData, FBaseResponseData BaseResponseData)
+				{
+					UE_LOG(LogTemp, Log, TEXT("OpenAI response: %s"), *ResponseData.GridJson);
+				});
+			}
+			
 		}
 		return FReply::Handled();
 	}

@@ -1,8 +1,11 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MinesweeperAI.h"
+
+#include "ISettingsModule.h"
 #include "MinesweeperAIStyle.h"
 #include "MinesweeperAICommands.h"
+#include "MinesweeperDeveloperSettings.h"
 #include "MinesweeperWindow.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Layout/SBox.h"
@@ -19,6 +22,19 @@ void FMinesweeperAIModule::StartupModule()
     FMinesweeperAIStyle::ReloadTextures();
 
     FMinesweeperAICommands::Register();
+
+#if WITH_EDITOR
+
+    //Project settings Q_Core
+    if (ISettingsModule* SettingModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
+    {
+        SettingModule->RegisterSettings("Project", "Plugins", "MineSweeperAI Developer Settings",
+            LOCTEXT("CoreName", "Q_Core"),
+            LOCTEXT("CoreDescription", "Settings for the MineSweeperAI plugin"),
+            GetMutableDefault<UMinesweeperDeveloperSettings>()
+        );
+    }
+#endif
 
     PluginCommands = MakeShareable(new FUICommandList);
     PluginCommands->MapAction(
