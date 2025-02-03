@@ -9,7 +9,6 @@
 
 DEFINE_LOG_CATEGORY_STATIC(AI_AsyncRequestLog, Log, All);
 
-
 UOpenAIRequest* UOpenAIRequest::OpenAIRequest(FOpenAiRequestData Request)
 {
 	UOpenAIRequest* OpenAIRequestNode = NewObject<UOpenAIRequest>();
@@ -31,7 +30,6 @@ void UOpenAIRequest::OnOpenAIRequest(FOpenAiRequestData Request)
 		}
 	}
 	FString APIUrl = TEXT("https://api.openai.com/v1/chat/completions");
-
 	TSharedPtr<FJsonObject> RequestPayload = MakeShareable(new FJsonObject);
 	RequestPayload->SetStringField(TEXT("model"), TEXT("gpt-4o-mini"));
 	RequestPayload->SetNumberField(TEXT("max_tokens"), 200);
@@ -80,8 +78,7 @@ void UOpenAIRequest::OnOpenAIRequest(FOpenAiRequestData Request)
 	FunctionSchema->SetObjectField(TEXT("parameters"), Parameters);
 	Functions.Add(MakeShareable(new FJsonValueObject(FunctionSchema)));
 	RequestPayload->SetArrayField(TEXT("functions"), Functions);
-	RequestPayload->SetStringField(TEXT("function_call"), TEXT("auto")); // Auto-invoke the function
-
+	RequestPayload->SetStringField(TEXT("function_call"), TEXT("auto"));
 
 	FString RequestContent;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&RequestContent);
@@ -94,7 +91,6 @@ void UOpenAIRequest::OnOpenAIRequest(FOpenAiRequestData Request)
 	HTTPRequest->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *CacheOpenAiAPIKey));
 	HTTPRequest->SetContentAsString(RequestContent);
 	HTTPRequest->OnProcessRequestComplete().BindUObject(this, &UOpenAIRequest::OnHttpResponse);
-
 	HTTPRequest->ProcessRequest();
 }
 
@@ -265,7 +261,6 @@ TSharedPtr<FJsonObject> UOpenAIRequest::GenerateMinesweeperGrid(int32 Rows, int3
 		}
 	}
 
-	// Randomly place mines
 	TSet<FIntPoint> MinePositions;
 	while (MinePositions.Num() < Mines)
 	{
@@ -274,7 +269,6 @@ TSharedPtr<FJsonObject> UOpenAIRequest::GenerateMinesweeperGrid(int32 Rows, int3
 		MinePositions.Add(FIntPoint(R, C));
 	}
 
-	// Place mines and calculate adjacent numbers
 	for (const FIntPoint& Mine : MinePositions)
 	{
 		Grid[Mine.X][Mine.Y] = "X";
