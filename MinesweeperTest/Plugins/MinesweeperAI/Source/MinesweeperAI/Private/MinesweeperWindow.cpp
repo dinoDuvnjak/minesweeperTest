@@ -3,6 +3,7 @@
 
 #include "MinesweeperWindow.h"
 #include "SlateOptMacros.h"
+#include "Widgets/Layout/SScaleBox.h"
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -130,12 +131,15 @@ void SMinesweeperWindow::Construct(const FArguments& InArgs)
                             .OnClicked(this, &SMinesweeperWindow::OnSubmitClicked)
                             .Content()
                            [
-                               SNew(SBox)
-                               .HAlign(HAlign_Center)
-                               .VAlign(VAlign_Center)
+                               SNew(SScaleBox)
                                [
-                                SNew(SImage)
-                                .Image(FSlateIcon(FName("CoreStyle"), "Icons.ArrowUp").GetIcon())                            
+                                   SNew(SBox)
+                                   .HAlign(HAlign_Center)
+                                   .VAlign(VAlign_Center)
+                                   [
+                                    SNew(SImage)
+                                    .Image(FSlateIcon(FName("CoreStyle"), "Icons.ArrowUp").GetIcon())                            
+                                   ]
                                ]
                            ]
                         ]

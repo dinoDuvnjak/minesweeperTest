@@ -11,7 +11,6 @@ DEFINE_LOG_CATEGORY_STATIC(MinesweeperWindowLog, Log, All);
 #define PLACEHOLDER_TEXT_PRE_GRID_GENERATOR TEXT("Generate a new 3x3 Minesweeper grid with 2 mines")
 #define PLACEHOLDER_TEXT_ON_GRID_GENERATING TEXT("Generating grid...")
 
-
 /**
  * 
  */
@@ -240,11 +239,10 @@ private:
 					.OnClicked(this, &SMinesweeperWindow::OnTileClicked, Row, Col)
 					.Content()
 					[
-						SNew(STextBlock).Text(FText::FromString(" ")) // Initially empty
+						SNew(STextBlock).Text(FText::FromString(" "))
 					]
 				];
-
-				GridButtons[Row][Col] = TileButton; // Store button reference
+				GridButtons[Row][Col] = TileButton; 
 			}
 		}
 		OnGridGenerationFinished();
