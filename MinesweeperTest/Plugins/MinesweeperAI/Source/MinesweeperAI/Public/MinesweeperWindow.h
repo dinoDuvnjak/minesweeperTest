@@ -5,7 +5,12 @@
 #include "CoreMinimal.h"
 #include "AIAsyncRequest.h"
 #include "Widgets/SCompoundWidget.h"
-#include "Widgets/Input/SMultiLineEditableTextBox.h"
+
+DEFINE_LOG_CATEGORY_STATIC(MinesweeperWindowLog, Log, All);
+
+#define PLACEHOLDER_TEXT_PRE_GRID_GENERATOR TEXT("Generate a new 3x3 Minesweeper grid with 2 mines")
+#define PLACEHOLDER_TEXT_ON_GRID_GENERATING TEXT("Generating grid...")
+
 
 /**
  * 
@@ -19,77 +24,229 @@ public:
 
 	SLATE_END_ARGS()
 
-	/** Constructs this widget with InArgs */
 	void Construct(const FArguments& InArgs);
 
 private:
-	TSharedPtr<SEditableTextBox> InputTextBox;
-	// 🔹 Creates a Minesweeper Tile Button
-	TSharedRef<SWidget> CreateTileButton()
+	TSharedPtr<SGridPanel> MinesweeperGrid = nullptr;
+	TArray<TArray<TSharedPtr<SButton>>> GridButtons = TArray<TArray<TSharedPtr<SButton>>>();
+	TArray<TArray<FString>> GridData = TArray<TArray<FString>>();
+	TSharedPtr<SEditableTextBox> InputTextBox = nullptr;
+	FString CachedPrombt = FString("");
+	TSharedPtr<SButton> SubmitButton;
+	TSharedPtr<SButton> RefreshButton;
+	bool bIsGeneratingGrid = false;
+	
+private:	
+	FReply OnTileClicked(int32 Row, int32 Col)
 	{
-		return SNew(SButton)
-		.ButtonColorAndOpacity(FLinearColor(0.3f, 0.3f, 0.3f, 1.0f)) // ✅ Default grey background
-		.OnHovered_Lambda([]() { UE_LOG(LogTemp, Log, TEXT("Button Hovered")); }) // Optional hover log
-		.OnClicked(this, &SMinesweeperWindow::OnTileClicked)
-		[
-			SNew(STextBlock)
-			.Text(FText::FromString(""))
-			.Justification(ETextJustify::Center)
-		];
-	}
+		if (GridData.IsValidIndex(Row) && GridData[Row].IsValidIndex(Col))
+		{
+			FString TileValue = GridData[Row][Col];
 
-	// 🔹 Called when a Minesweeper Tile is clicked
-	FReply OnTileClicked()
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Tile clicked!"));
+			if (TileValue == "X")
+			{
+				FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Game Over! You hit a bomb!"));
+				AsyncTask(ENamedThreads::GameThread, [this]()
+				{
+					RegenerateBoard();
+				});
+
+				return FReply::Handled();
+			}
+			else
+			{
+				RevealTile(Row, Col);
+			}
+		}
+
 		return FReply::Handled();
 	}
 
-	// 🔹 Called when the Generate New Grid button is clicked
-	FReply OnGenerateGridClicked()
+	void RegenerateBoard()
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Generating new grid..."));
-		return FReply::Handled();
+		if (CachedPrombt.IsEmpty())
+		{
+			UE_LOG(MinesweeperWindowLog, Error, TEXT("RegenerateBoard, CachedPrombt is empty"));
+			return;
+		}
+		SendRequest(CachedPrombt);
+	}
+
+	void RevealTile(int32 Row, int32 Col)
+	{
+		if (!GridData.IsValidIndex(Row) || !GridData[Row].IsValidIndex(Col) || 
+			!GridButtons.IsValidIndex(Row) || !GridButtons[Row].IsValidIndex(Col))
+		{
+			return;
+		}
+
+		if (GridData[Row][Col] == "R") 
+		{
+			return;
+		}
+
+		FString TileValue = GridData[Row][Col];
+		GridData[Row][Col] = "R";
+
+		if (GridButtons[Row][Col].IsValid()) 
+		{
+			GridButtons[Row][Col]->SetContent(
+				SNew(STextBlock).Text(FText::FromString(TileValue == "0" ? "" : TileValue))
+			);
+			if (TileValue == "0")
+			{
+				GridButtons[Row][Col]->SetVisibility(EVisibility::Hidden);
+			}
+		}
+
+		if (TileValue == "0")
+		{
+			RevealTile(Row - 1, Col); 
+			RevealTile(Row + 1, Col); 
+			RevealTile(Row, Col - 1); 
+			RevealTile(Row, Col + 1);
+		}
 	}
 
 	void OnTextCommitted(const FText& NewText, ETextCommit::Type CommitType)
 	{
 		if (CommitType == ETextCommit::OnEnter)
 		{
-			UE_LOG(LogTemp, Log, TEXT("User entered: %s"), *NewText.ToString());
+			UE_LOG(MinesweeperWindowLog, Log, TEXT("User entered: %s"), *NewText.ToString());
 		}
 	}
 
-	FReply OnClearInputClicked()
+	FReply OnRefreshButtonClicked()
 	{
-		if (InputTextBox.IsValid())
-		{
-			InputTextBox->SetText(FText::GetEmpty()); // ✅ Clears the text box
-		}
+		RegenerateBoard();
 		return FReply::Handled();
 	}
 
-	// 🔹 Submits the message
 	FReply OnSubmitClicked()
 	{
+		if (bIsGeneratingGrid)
+		{
+			return FReply::Handled();
+		}
 		if (InputTextBox.IsValid())
 		{
 			FString UserInput = InputTextBox->GetText().ToString();
-			UE_LOG(LogTemp, Log, TEXT("User submitted: %s"), *UserInput);
-
-			//TODO
-			FOpenAiRequestData RequestData;
-			RequestData.Prombt = UserInput;
-			UOpenAIRequest* OpenAIRequest = UOpenAIRequest::OpenAIRequest(RequestData);
-			if (OpenAIRequest)
-			{
-				OpenAIRequest->OnCallback.AddLambda([this](FOpenAiResponseData ResponseData, FBaseResponseData BaseResponseData)
-				{
-					UE_LOG(LogTemp, Log, TEXT("OpenAI response: %s"), *ResponseData.GridJson);
-				});
-			}
-			
+			SendRequest(UserInput);
+		}
+		if (RefreshButton.IsValid())
+		{
+			RefreshButton->SetEnabled(true);
 		}
 		return FReply::Handled();
+	}
+
+	void SendRequest(const FString& Prombt)
+	{
+		FOpenAiRequestData RequestData;
+		RequestData.Prombt = Prombt;
+		CachedPrombt = Prombt;
+		UOpenAIRequest* OpenAIRequest = UOpenAIRequest::OpenAIRequest(RequestData);
+		if (OpenAIRequest)
+		{
+			OnGridGenerationStart();
+			OpenAIRequest->OnCallback.AddLambda([this](FOpenAiResponseData ResponseData, FBaseResponseData BaseResponseData)
+			{
+				ParseMinesweeperGrid(ResponseData.GridJson);
+			});
+		}
+	}
+	
+	void OnGridGenerationStart()
+	{
+		SetChatInputFieldEnabled(false);
+		InputTextBox->SetText(FText::FromString(PLACEHOLDER_TEXT_ON_GRID_GENERATING));
+		bIsGeneratingGrid = true;
+	}
+
+	void OnGridGenerationFinished()
+	{
+		SetChatInputFieldEnabled(true);
+		InputTextBox->SetText(FText::FromString(PLACEHOLDER_TEXT_PRE_GRID_GENERATOR));
+		bIsGeneratingGrid = false;
+	}
+
+	void SetChatInputFieldEnabled(const bool bEnabled)
+	{
+		if (InputTextBox.IsValid())
+		{
+			InputTextBox->SetIsReadOnly(!bEnabled);
+		}
+		if (SubmitButton.IsValid())
+		{
+			SubmitButton->SetEnabled(bEnabled);
+		}
+	}
+	
+	void ParseMinesweeperGrid(const FString& GridJson)
+	{		
+		TSharedPtr<FJsonObject> JsonParsed;
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(GridJson);
+
+		if (FJsonSerializer::Deserialize(Reader, JsonParsed) && JsonParsed.IsValid())
+		{
+			const TArray<TSharedPtr<FJsonValue>>* GridArray;
+			if (JsonParsed->TryGetArrayField(TEXT("grid"), GridArray))
+			{
+				GridData.Empty();
+				for (const auto& RowValue : *GridArray)
+				{
+					TArray<FString> Row;
+					const TArray<TSharedPtr<FJsonValue>>* RowArray;
+
+					if (RowValue->TryGetArray(RowArray))
+					{
+						for (const auto& CellValue : *RowArray)
+						{
+							Row.Add(CellValue->AsString());
+						}
+					}
+					GridData.Add(Row);
+				}
+				RebuildGrid();
+			}
+		}
+	}
+
+	void RebuildGrid()
+	{
+		if (!MinesweeperGrid.IsValid())
+		{
+			return;
+		}
+
+		MinesweeperGrid->ClearChildren();
+		GridButtons.Empty();
+
+		int32 Rows = GridData.Num();
+		int32 Cols = (Rows > 0) ? GridData[0].Num() : 0;
+
+		GridButtons.SetNum(Rows);
+
+		for (int32 Row = 0; Row < Rows; Row++)
+		{
+			GridButtons[Row].SetNum(Cols);
+			for (int32 Col = 0; Col < Cols; Col++)
+			{
+				TSharedPtr<SButton> TileButton;
+
+				MinesweeperGrid->AddSlot(Col, Row)
+				[
+					SAssignNew(TileButton, SButton)
+					.OnClicked(this, &SMinesweeperWindow::OnTileClicked, Row, Col)
+					.Content()
+					[
+						SNew(STextBlock).Text(FText::FromString(" ")) // Initially empty
+					]
+				];
+
+				GridButtons[Row][Col] = TileButton; // Store button reference
+			}
+		}
+		OnGridGenerationFinished();
 	}
 };

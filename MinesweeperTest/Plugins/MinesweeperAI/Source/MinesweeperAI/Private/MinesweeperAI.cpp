@@ -25,11 +25,10 @@ void FMinesweeperAIModule::StartupModule()
 
 #if WITH_EDITOR
 
-    //Project settings Q_Core
     if (ISettingsModule* SettingModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
     {
-        SettingModule->RegisterSettings("Project", "Plugins", "MineSweeperAI Developer Settings",
-            LOCTEXT("CoreName", "Q_Core"),
+        SettingModule->RegisterSettings("Project", "Plugins", "MinesweeperAI Developer tools",
+            LOCTEXT("CoreName", "MinesweeperAI"),
             LOCTEXT("CoreDescription", "Settings for the MineSweeperAI plugin"),
             GetMutableDefault<UMinesweeperDeveloperSettings>()
         );
@@ -68,28 +67,10 @@ void FMinesweeperAIModule::ShutdownModule()
 
 TSharedRef<SDockTab> FMinesweeperAIModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
-    /*FText WidgetText = FText::Format(
-        LOCTEXT("WindowWidgetText", "Add code to {0} in {1} to override this window's contents"),
-        FText::FromString(TEXT("FMinesweeperAIModule::OnSpawnPluginTab")),
-        FText::FromString(TEXT("MinesweeperAI.cpp"))
-    );
-
-    return SNew(SDockTab)
-        .TabRole(ETabRole::NomadTab)
-        [
-            SNew(SBox)
-            .HAlign(HAlign_Center)
-            .VAlign(VAlign_Center)
-            [
-                SNew(STextBlock)
-                .Text(WidgetText)
-            ]
-        ];*/
-
     return SNew(SDockTab)
        .TabRole(ETabRole::NomadTab)
        [
-           SNew(SMinesweeperWindow) // 🔹 Replace placeholder UI with your custom window
+           SNew(SMinesweeperWindow)
        ];
 }
 
